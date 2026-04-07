@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Journal</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.png">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, sans-serif;
+    }
+
+    #topbar {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+    }
+
+    #home {
+      font-size: 20px;
+      margin-right: 10px;
+      cursor: pointer;
+    }
+
+    #date {
+      font-weight: 600;
+    }
+
+    #editor {
+      width: 100%;
+      height: calc(100vh - 50px);
+      border: none;
+      outline: none;
+      resize: none;
+      padding: 15px;
+      font-size: 16px;
+    }
+
+    #archive {
+      display: none;
+      padding: 10px;
+    }
+
+    .entry {
+      margin-bottom: 15px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 8px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="topbar">
+  <div id="home">☰</div>
+  <div id="date"></div>
+</div>
+
+<textarea id="editor" placeholder="Write..."></textarea>
+
+<div id="archive"></div>
+
+<script>
+const editor = document.getElementById("editor");
+const archive = document.getElementById("archive");
+const home = document.getElementById("home");
+
+const today = new Date().toISOString().slice(0,10);
+
+function formatDate(d) {
+  return new Date(d).toDateString();
+}
+
+document.getElementById("date").innerText = formatDate(today);
+
+// load
+let data = JSON.parse(localStorage.getItem("journal") || "{}");
+editor.value = data[today] || "";
+
+// autosave
+editor.addEventListener("input", () => {
+  if (editor.value.trim() === "") {
+    delete data[today];
+  } else {
+    data[today] = editor.value;
+  }
+  localStorage.setItem("journal", JSON.stringify(data));
+});
+
+// archive toggle
+home.onclick = () => {
+  if (archive.style.display === "none") {
+    archive.style.display = "block";
+    editor.style.display = "none";
+
+    archive.innerHTML = "";
+
+    Object.entries(data)
+      .sort((a,b) => b[0].localeCompare(a[0]))
+      .forEach(([date, text]) => {
+        const div = document.createElement("div");
+        div.className = "entry";
+        div.innerHTML = `<b>${formatDate(date)}</b><br>${text.slice(0,100)}`;
+        archive.appendChild(div);
+      });
+
+  } else {
+    archive.style.display = "none";
+    editor.style.display = "block";
+  }
+};
+
+// service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+</script>
+
+</body>
+</html>
